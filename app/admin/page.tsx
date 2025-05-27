@@ -1,28 +1,24 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useSupabase } from "@/components/supabase-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, BookOpen, MessageSquare, TrendingUp } from "lucide-react"
-import { useUserProfile } from "@/hooks/use-user-profile"
-import { createClerkSupabaseClient } from "@/lib/supabase"
+import { BookOpen, MessageSquare, TrendingUp, Users } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export default function AdminDashboard() {
-  const { getToken } = useUserProfile()
   const [stats, setStats] = useState({
     totalCourses: 0,
     totalFaculty: 0,
     totalTestimonials: 0,
     totalUsers: 0,
   })
-
+  const client = useSupabase()
   useEffect(() => {
     fetchStats()
   }, [])
 
   const fetchStats = async () => {
     try {
-      const client = createClerkSupabaseClient(getToken)
-
       const [coursesRes, facultyRes, testimonialsRes, usersRes] = await Promise.all([
         client.from("courses").select("id", { count: "exact" }),
         client.from("faculty").select("id", { count: "exact" }),

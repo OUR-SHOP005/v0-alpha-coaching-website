@@ -1,11 +1,11 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
+import { useUserProfile } from "@/hooks/use-user-profile"
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
+import { Menu, Settings, X } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
-import { useUserProfile } from "@/hooks/use-user-profile"
-import { Menu, X, Settings } from "lucide-react"
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
@@ -43,12 +43,14 @@ export default function Navigation() {
 
             <div className="flex items-center space-x-4">
               <SignedOut>
-                <SignInButton mode="redirect" redirectUrl="/sign-in">
+                {/* <SignInButton mode="redirect" redirectUrl="/sign-in"> */}
+                <SignInButton >
                   <Button variant="ghost" size="sm">
                     Sign In
                   </Button>
                 </SignInButton>
-                <SignUpButton mode="redirect" redirectUrl="/sign-up">
+                <SignUpButton >
+                  {/* <SignUpButton mode="redirect" redirectUrl="/sign-up"> */}
                   <Button size="sm">Sign Up</Button>
                 </SignUpButton>
               </SignedOut>
@@ -91,12 +93,14 @@ export default function Navigation() {
               <div className="pt-4 border-t border-gray-200">
                 <SignedOut>
                   <div className="space-y-2 px-3">
-                    <SignInButton mode="redirect" redirectUrl="/sign-in">
+                    <SignInButton>
+                      {/* <SignInButton mode="redirect" redirectUrl="/sign-in"> */}
                       <Button variant="ghost" className="w-full justify-start">
                         Sign In
                       </Button>
                     </SignInButton>
-                    <SignUpButton mode="redirect" redirectUrl="/sign-up">
+                    <SignUpButton>
+                      {/* <SignUpButton mode="redirect" redirectUrl="/sign-up"> */}
                       <Button className="w-full">Sign Up</Button>
                     </SignUpButton>
                   </div>

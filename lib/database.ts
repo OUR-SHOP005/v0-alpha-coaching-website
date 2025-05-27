@@ -1,13 +1,12 @@
-import { supabase, createClerkSupabaseClient } from "./supabase"
+import { supabase } from "./supabase"
 import type {
-  Course,
+  AboutUs,
   AdmissionStep,
   ContactInfo,
-  AboutUs,
+  Course,
   Faculty,
-  Testimonial,
   HeroSection,
-  UserProfile,
+  Testimonial
 } from "./types"
 
 // Public data fetching functions (no auth required)
@@ -64,130 +63,6 @@ export async function getHeroSection(): Promise<HeroSection | null> {
   return data
 }
 
-// User profile functions
-export async function createUserProfile(
-  getToken: () => Promise<string | null>,
-  profile: Omit<UserProfile, "id" | "created_at" | "updated_at">,
-): Promise<UserProfile | null> {
-  const client = createClerkSupabaseClient(getToken)
-  const { data, error } = await client.from("user_profiles").insert(profile).select().single()
-
-  if (error) {
-    console.error("Error creating user profile:", error)
-    return null
-  }
-  return data
-}
-
-export async function getUserProfile(
-  getToken: () => Promise<string | null>,
-  clerkUserId: string,
-): Promise<UserProfile | null> {
-  const client = createClerkSupabaseClient(getToken)
-  const { data, error } = await client.from("user_profiles").select("*").eq("clerk_user_id", clerkUserId).single()
-
-  if (error) return null
-  return data
-}
-
-export async function updateUserProfile(
-  getToken: () => Promise<string | null>,
-  clerkUserId: string,
-  updates: Partial<UserProfile>,
-): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client
-    .from("user_profiles")
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq("clerk_user_id", clerkUserId)
-
-  if (error) throw error
-}
-
-// Admin functions for content management
-export async function createCourse(
-  getToken: () => Promise<string | null>,
-  course: Omit<Course, "id" | "created_by">,
-): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client.from("courses").insert(course)
-
-  if (error) throw error
-}
-
-export async function updateCourse(
-  getToken: () => Promise<string | null>,
-  id: number,
-  course: Partial<Course>,
-): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client
-    .from("courses")
-    .update({ ...course, updated_at: new Date().toISOString() })
-    .eq("id", id)
-
-  if (error) throw error
-}
-
-export async function deleteCourse(getToken: () => Promise<string | null>, id: number): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client.from("courses").delete().eq("id", id)
-
-  if (error) throw error
-}
-
-export async function createFaculty(
-  getToken: () => Promise<string | null>,
-  faculty: Omit<Faculty, "id" | "created_by">,
-): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client.from("faculty").insert(faculty)
-
-  if (error) throw error
-}
-
-export async function updateFaculty(
-  getToken: () => Promise<string | null>,
-  id: number,
-  faculty: Partial<Faculty>,
-): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client.from("faculty").update(faculty).eq("id", id)
-
-  if (error) throw error
-}
-
-export async function deleteFaculty(getToken: () => Promise<string | null>, id: number): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client.from("faculty").delete().eq("id", id)
-
-  if (error) throw error
-}
-
-export async function createTestimonial(
-  getToken: () => Promise<string | null>,
-  testimonial: Omit<Testimonial, "id" | "created_by">,
-): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client.from("testimonials").insert(testimonial)
-
-  if (error) throw error
-}
-
-export async function updateTestimonial(
-  getToken: () => Promise<string | null>,
-  id: number,
-  testimonial: Partial<Testimonial>,
-): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client.from("testimonials").update(testimonial).eq("id", id)
-
-  if (error) throw error
-}
-
-export async function deleteTestimonial(getToken: () => Promise<string | null>, id: number): Promise<void> {
-  const client = createClerkSupabaseClient(getToken)
-  const { error } = await client.from("testimonials").delete().eq("id", id)
-
-  if (error) throw error
-}
+// These functions have been moved to the useUserProfile hook or specific components
+// that use the client-side Supabase provider directly.
+// The server-side admin functions remain in auth.ts.
