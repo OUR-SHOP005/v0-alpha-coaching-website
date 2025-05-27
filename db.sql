@@ -26,14 +26,30 @@ CREATE TABLE admission_process (
 );
 
 -- Create contact_info table
+-- Table to store contact info
 CREATE TABLE contact_info (
   id SERIAL PRIMARY KEY,
-  address TEXT,
-  phone VARCHAR(20),
-  email VARCHAR(100),
+  address TEXT NOT NULL,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  postal_code TEXT NOT NULL,
+  country TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  email TEXT NOT NULL,
   office_hours TEXT,
-  map_embed_url TEXT,
-  updated_at TIMESTAMP DEFAULT NOW()
+  map_url TEXT,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  hours TEXT,
+  image_url TEXT
+);
+
+-- Table to store social media links related to contact info
+CREATE TABLE social_media (
+  id bigint primary key generated always as identity,
+  contact_info_id bigint NOT NULL REFERENCES contact_info(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  url TEXT NOT NULL,
+  icon TEXT
 );
 
 -- Create about_us table
@@ -112,10 +128,12 @@ CREATE TABLE contact_submissions (
   phone VARCHAR(255),
   subject VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
+  reply TEXT,
   status VARCHAR(50) DEFAULT 'new' CHECK (status IN ('new', 'in_progress', 'resolved')),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
+
 
 -- Enable Row Level Security on all tables
 ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
@@ -127,6 +145,7 @@ ALTER TABLE about_us ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hero_section ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contact_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE social_media ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for user_profiles
 CREATE POLICY "Users can view their own profile"

@@ -1,120 +1,279 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useUserProfile } from "@/hooks/use-user-profile"
-import { createClerkSupabaseClient } from "@/lib/supabase"
-import { updateUserRole, toggleUserStatus } from "@/lib/auth"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useSupabase } from "@/components/supabase-provider"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Users, Search, Shield, UserCheck, UserX, Mail, Calendar } from "lucide-react"
-import Image from "next/image"
-import type { UserProfile } from "@/lib/types"
+import { DataTable } from "@/components/ui/data-table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import { Modal } from "@/components/ui/modal"
+import {
+  CheckCircle,
+  ChevronDown,
+  Shield,
+  ShieldAlert,
+  UserX
+} from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "react-hot-toast"
 
-export default function UsersManagementPage() {
-  const { getToken } = useUserProfile()
-  const [users, setUsers] = useState<UserProfile[]>([])
-  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
+interface User {
+  id: number
+  clerk_user_id: string
+  email: string
+  name: string
+  role: 'admin' | 'user'
+  is_active: boolean
+  image_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export default function UsersPage() {
+  const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all")
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
-  const [alert, setAlert] = useState<{ type: "success" | "error"; message: string } | null>(null)
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [action, setAction] = useState<'delete' | 'toggle-status' | 'toggle-role'>('delete')
+
+  const supabase = useSupabase()
 
   useEffect(() => {
-    fetchUsers()
+    loadUsers()
   }, [])
 
-  useEffect(() => {
-    filterUsers()
-  }, [users, searchTerm, roleFilter, statusFilter])
-
-  const fetchUsers = async () => {
+  const loadUsers = async () => {
     try {
       setLoading(true)
-      const client = createClerkSupabaseClient(getToken)
-      const { data, error } = await client.from("user_profiles").select("*").order("created_at", { ascending: false })
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
+
       setUsers(data || [])
     } catch (error) {
-      console.error("Error fetching users:", error)
-      showAlert("error", "Failed to load users")
+      console.error('Error loading users:', error)
+      toast.error('Failed to load users')
     } finally {
       setLoading(false)
     }
   }
 
-  const filterUsers = () => {
-    let filtered = users
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (user) =>
-          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    }
-
-    // Role filter
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((user) => user.role === roleFilter)
-    }
-
-    // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((user) => (statusFilter === "active" ? user.is_active : !user.is_active))
-    }
-
-    setFilteredUsers(filtered)
+  const openConfirmModal = (user: User, actionType: 'delete' | 'toggle-status' | 'toggle-role') => {
+    setSelectedUser(user)
+    setAction(actionType)
+    setConfirmModalOpen(true)
   }
 
-  const handleRoleChange = async (userId: string, newRole: "admin" | "user") => {
+  const handleConfirm = async () => {
+    if (!selectedUser) return
+
     try {
-      const success = await updateUserRole(userId, newRole)
-      if (success) {
-        setUsers(users.map((user) => (user.clerk_user_id === userId ? { ...user, role: newRole } : user)))
-        showAlert("success", "User role updated successfully")
-      } else {
-        showAlert("error", "Failed to update user role")
+      if (action === 'delete') {
+        // Call API to delete user
+        await supabase
+          .from('user_profiles')
+          .delete()
+          .eq('clerk_user_id', selectedUser.clerk_user_id)
+
+        toast.success('User deleted successfully')
       }
+      else if (action === 'toggle-status') {
+        // Toggle user active status
+        const newStatus = !selectedUser.is_active
+
+        await supabase
+          .from('user_profiles')
+          .update({ is_active: newStatus })
+          .eq('clerk_user_id', selectedUser.clerk_user_id)
+
+        toast.success(`User ${newStatus ? 'activated' : 'deactivated'} successfully`)
+      }
+      else if (action === 'toggle-role') {
+        // Toggle user role between admin and regular user
+        const newRole = selectedUser.role === 'admin' ? 'user' : 'admin'
+
+        await supabase
+          .from('user_profiles')
+          .update({ role: newRole })
+          .eq('clerk_user_id', selectedUser.clerk_user_id)
+
+        toast.success(`User role updated to ${newRole}`)
+      }
+
+      // Refresh user list
+      await loadUsers()
     } catch (error) {
-      console.error("Error updating user role:", error)
-      showAlert("error", "Failed to update user role")
+      console.error('Error:', error)
+      toast.error('An error occurred')
+    } finally {
+      setConfirmModalOpen(false)
+      setSelectedUser(null)
     }
   }
 
-  const handleStatusToggle = async (userId: string, currentStatus: boolean) => {
-    try {
-      const newStatus = !currentStatus
-      const success = await toggleUserStatus(userId, newStatus)
-      if (success) {
-        setUsers(users.map((user) => (user.clerk_user_id === userId ? { ...user, is_active: newStatus } : user)))
-        showAlert("success", `User ${newStatus ? "activated" : "deactivated"} successfully`)
-      } else {
-        showAlert("error", "Failed to update user status")
+  const columns = [
+    {
+      accessorKey: "name",
+      header: "User",
+      cell: ({ row }: { row: { original: User } }) => {
+        const user = row.original
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarImage src={user.image_url || undefined} />
+              <AvatarFallback>
+                {user.name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium">{user.name}</p>
+              <p className="text-xs text-gray-500">{user.email}</p>
+            </div>
+          </div>
+        )
       }
-    } catch (error) {
-      console.error("Error updating user status:", error)
-      showAlert("error", "Failed to update user status")
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }: { row: { original: User } }) => {
+        const user = row.original
+        return (
+          <div className="flex items-center gap-2">
+            {user.role === 'admin' ? (
+              <ShieldAlert className="h-4 w-4 text-red-500" />
+            ) : (
+              <Shield className="h-4 w-4 text-blue-500" />
+            )}
+            <span className="capitalize">{user.role}</span>
+          </div>
+        )
+      }
+    },
+    {
+      accessorKey: "is_active",
+      header: "Status",
+      cell: ({ row }: { row: { original: User } }) => {
+        const user = row.original
+        return (
+          <div className={`flex items-center gap-2 ${user.is_active ? 'text-green-600' : 'text-red-600'}`}>
+            {user.is_active ? (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                <span>Active</span>
+              </>
+            ) : (
+              <>
+                <UserX className="h-4 w-4" />
+                <span>Inactive</span>
+              </>
+            )}
+          </div>
+        )
+      }
+    },
+    {
+      accessorKey: "created_at",
+      header: "Joined",
+      cell: ({ row }: { row: { original: User } }) => {
+        return new Date(row.original.created_at).toLocaleDateString()
+      }
+    },
+    {
+      id: "actions",
+      cell: ({ row }: { row: { original: User } }) => {
+        const user = row.original
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => openConfirmModal(user, 'toggle-role')}>
+                {user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openConfirmModal(user, 'toggle-status')}>
+                {user.is_active ? 'Deactivate User' : 'Activate User'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => openConfirmModal(user, 'delete')}
+                className="text-red-600"
+              >
+                Delete User
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      }
     }
-  }
+  ]
 
-  const showAlert = (type: "success" | "error", message: string) => {
-    setAlert({ type, message })
-    setTimeout(() => setAlert(null), 5000)
-  }
+  // Create confirm modal content based on action type
+  const getModalContent = () => {
+    if (!selectedUser) return null
 
-  if (loading) {
+    let title = ''
+    let description = ''
+    let buttonText = ''
+    let buttonVariant: 'default' | 'destructive' | 'outline' = 'default'
+
+    if (action === 'delete') {
+      title = 'Delete User'
+      description = `Are you sure you want to delete ${selectedUser.name}? This action cannot be undone.`
+      buttonText = 'Delete'
+      buttonVariant = 'destructive'
+    } else if (action === 'toggle-status') {
+      const willActivate = !selectedUser.is_active
+      title = willActivate ? 'Activate User' : 'Deactivate User'
+      description = willActivate
+        ? `Are you sure you want to activate ${selectedUser.name}?`
+        : `Are you sure you want to deactivate ${selectedUser.name}?`
+      buttonText = willActivate ? 'Activate' : 'Deactivate'
+      buttonVariant = willActivate ? 'default' : 'destructive'
+    } else if (action === 'toggle-role') {
+      const willBecomeAdmin = selectedUser.role !== 'admin'
+      title = willBecomeAdmin ? 'Promote to Admin' : 'Remove Admin Role'
+      description = willBecomeAdmin
+        ? `Are you sure you want to give ${selectedUser.name} admin privileges?`
+        : `Are you sure you want to remove admin privileges from ${selectedUser.name}?`
+      buttonText = willBecomeAdmin ? 'Make Admin' : 'Remove Admin'
+      buttonVariant = willBecomeAdmin ? 'default' : 'outline'
+    }
+
     return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading users...</p>
+      <div className="space-y-4 pt-2">
+        <p>{description}</p>
+        <div className="flex justify-end space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => setConfirmModalOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant={buttonVariant}
+            onClick={handleConfirm}
+          >
+            {buttonText}
+          </Button>
         </div>
       </div>
     )
@@ -122,190 +281,27 @@ export default function UsersManagementPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-3xl font-bold text-gray-900">User Management</h2>
-        <p className="text-gray-600 mt-2">Manage user accounts, roles, and permissions</p>
+        <p className="text-gray-600 mt-2">Manage user accounts, roles, and access</p>
       </div>
 
-      {/* Alert */}
-      {alert && (
-        <Alert className={alert.type === "success" ? "border-green-500" : "border-red-500"}>
-          <AlertDescription className={alert.type === "success" ? "text-green-700" : "text-red-700"}>
-            {alert.message}
-          </AlertDescription>
-        </Alert>
-      )}
+      <DataTable
+        columns={columns}
+        data={users}
+        searchKey="name"
+        searchPlaceholder="Search by name..."
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Administrators</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.filter((u) => u.role === "admin").length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.filter((u) => u.is_active).length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive Users</CardTitle>
-            <UserX className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.filter((u) => !u.is_active).length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Filter and search users</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            <Select value={roleFilter} onValueChange={(value: "all" | "admin" | "user") => setRoleFilter(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="admin">Administrators</SelectItem>
-                <SelectItem value="user">Users</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={statusFilter}
-              onValueChange={(value: "all" | "active" | "inactive") => setStatusFilter(value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button onClick={fetchUsers} variant="outline">
-              Refresh
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Users List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Users ({filteredUsers.length})</CardTitle>
-          <CardDescription>Manage user accounts and permissions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <Image
-                    src={user.image_url || "/placeholder.svg"}
-                    alt={user.name}
-                    width={48}
-                    height={48}
-                    className="rounded-full"
-                  />
-                  <div>
-                    <h4 className="font-semibold">{user.name}</h4>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Mail className="w-3 h-3" />
-                      <span>{user.email}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <Calendar className="w-3 h-3" />
-                      <span>Joined {new Date(user.created_at).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <div className="flex flex-col space-y-2">
-                    <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                      {user.role === "admin" ? "Administrator" : "User"}
-                    </Badge>
-                    <Badge variant={user.is_active ? "default" : "destructive"}>
-                      {user.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-
-                  <div className="flex flex-col space-y-2">
-                    <Select
-                      value={user.role}
-                      onValueChange={(value: "admin" | "user") => handleRoleChange(user.clerk_user_id, value)}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Button
-                      variant={user.is_active ? "destructive" : "default"}
-                      size="sm"
-                      onClick={() => handleStatusToggle(user.clerk_user_id, user.is_active)}
-                    >
-                      {user.is_active ? "Deactivate" : "Activate"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No users found matching your criteria</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <Modal
+        title={action === 'delete' ? 'Delete User' :
+          action === 'toggle-status' ? (selectedUser?.is_active ? 'Deactivate User' : 'Activate User') :
+            (selectedUser?.role === 'admin' ? 'Remove Admin Role' : 'Promote to Admin')}
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+      >
+        {getModalContent()}
+      </Modal>
     </div>
   )
 }

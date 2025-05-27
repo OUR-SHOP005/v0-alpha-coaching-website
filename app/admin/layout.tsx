@@ -2,13 +2,26 @@
 
 import type React from "react"
 
-import { useUser } from "@clerk/nextjs"
+import { Button } from "@/components/ui/button"
 import { useUserProfile } from "@/hooks/use-user-profile"
+import { useUser } from "@clerk/nextjs"
+import {
+  BookOpen,
+  ContactIcon,
+  GraduationCap,
+  Info,
+  LayoutDashboard,
+  ListTodo,
+  LogOut,
+  Mail,
+  MessageSquare,
+  Newspaper,
+  Settings,
+  Users
+} from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { LayoutDashboard, BookOpen, Users, MessageSquare, Settings, LogOut, Mail } from "lucide-react"
 
 export default function AdminLayout({
   children,
@@ -40,20 +53,24 @@ export default function AdminLayout({
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/contacts", label: "Contact Submissions", icon: Mail },
     { href: "/admin/courses", label: "Courses", icon: BookOpen },
-    { href: "/admin/faculty", label: "Faculty", icon: Users },
+    { href: "/admin/faculty", label: "Faculty", icon: GraduationCap },
     { href: "/admin/testimonials", label: "Testimonials", icon: MessageSquare },
+    { href: "/admin/about", label: "About Us", icon: Info },
+    { href: "/admin/admission", label: "Admission Process", icon: ListTodo },
+    { href: "/admin/hero", label: "Hero Section", icon: Newspaper },
+    { href: "/admin/contact-info", label: "Contact Info", icon: ContactIcon },
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ]
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
+      <div className="w-64 bg-white shadow-lg overflow-y-auto fixed h-full">
         <div className="p-6">
           <h2 className="text-2xl font-bold text-blue-600">ALPHA Admin</h2>
         </div>
 
-        <nav className="mt-6">
+        <nav className="mt-6 pb-24">
           {sidebarItems.map((item) => {
             const IconComponent = item.icon
             return (
@@ -80,8 +97,8 @@ export default function AdminLayout({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <header className="bg-white shadow-sm border-b">
+      <div className="flex-1 ml-64 overflow-auto">
+        <header className="bg-white shadow-sm border-b sticky top-0 z-10">
           <div className="px-6 py-4">
             <h1 className="text-2xl font-semibold text-gray-900">Admin Dashboard</h1>
           </div>

@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
-import type { ContactInfo, Course, Testimonial, UserProfile } from "./types"
+import type { AboutUs, AdmissionStep, ContactInfo, ContactSubmission, Course, Faculty, HeroSection, Testimonial, UserProfile } from "./types"
 
 // Create a service role client with admin privileges
 const adminClient = createClient(
@@ -320,7 +320,7 @@ export async function updateContactInfoAdmin(
   try {
     const { data, error } = await adminClient
       .from("contact_info")
-      .update(updates)
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("id", contactInfoId) // Or a fixed ID if it's a single-row config table
       .select()
       .single()
@@ -337,12 +337,12 @@ export async function updateContactInfoAdmin(
 
 // If creation/deletion of contact info entries is needed:
 export async function createContactInfoAdmin(
-  contactInfoData: Omit<ContactInfo, "id">
+  contactInfoData: Omit<ContactInfo, "id" | "updated_at">
 ): Promise<ContactInfo | null> {
   try {
     const { data, error } = await adminClient
       .from("contact_info")
-      .insert(contactInfoData)
+      .insert({ ...contactInfoData, updated_at: new Date().toISOString() })
       .select()
       .single();
     if (error) {
@@ -370,7 +370,6 @@ export async function deleteContactInfoAdmin(contactInfoId: number): Promise<boo
   }
 }
 
-
 // Admin CUD Operations for Testimonials
 export async function createTestimonialAdmin(
   testimonialData: Omit<Testimonial, "id" | "created_by" | "updated_at">,
@@ -378,7 +377,7 @@ export async function createTestimonialAdmin(
   try {
     const { data, error } = await adminClient
       .from("testimonials")
-      .insert(testimonialData)
+      .insert({ ...testimonialData, created_at: new Date().toISOString() })
       .select()
       .single()
     if (error) {
@@ -399,7 +398,7 @@ export async function updateTestimonialAdmin(
   try {
     const { data, error } = await adminClient
       .from("testimonials")
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update(updates)
       .eq("id", testimonialId)
       .select()
       .single()
@@ -426,4 +425,362 @@ export async function deleteTestimonialAdmin(testimonialId: number): Promise<boo
     console.error("Delete testimonial error (admin):", error)
     return false
   }
-} 
+}
+
+// Admin CRUD Operations for AdmissionStep
+export async function createAdmissionStepAdmin(
+  stepData: Omit<AdmissionStep, "id" | "created_by" | "created_at">
+): Promise<AdmissionStep | null> {
+  try {
+    const { data, error } = await adminClient
+      .from("admission_process")
+      .insert({ ...stepData, created_at: new Date().toISOString() })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating admission step:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Create admission step error:", error)
+    return null
+  }
+}
+
+export async function updateAdmissionStepAdmin(
+  stepId: number,
+  updates: Partial<Omit<AdmissionStep, "id" | "created_by" | "created_at">>
+): Promise<AdmissionStep | null> {
+  try {
+    const { data, error } = await adminClient
+      .from("admission_process")
+      .update(updates)
+      .eq("id", stepId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating admission step:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Update admission step error:", error)
+    return null
+  }
+}
+
+export async function deleteAdmissionStepAdmin(stepId: number): Promise<boolean> {
+  try {
+    const { error } = await adminClient
+      .from("admission_process")
+      .delete()
+      .eq("id", stepId)
+
+    if (error) {
+      console.error("Error deleting admission step:", error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error("Delete admission step error:", error)
+    return false
+  }
+}
+
+// Admin CRUD Operations for AboutUs
+export async function updateAboutUsAdmin(
+  aboutUsId: number,
+  updates: Partial<Omit<AboutUs, "id" | "updated_at">>
+): Promise<AboutUs | null> {
+  try {
+    const { data, error } = await adminClient
+      .from("about_us")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", aboutUsId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating about us:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Update about us error:", error)
+    return null
+  }
+}
+
+export async function createAboutUsAdmin(
+  aboutUsData: Omit<AboutUs, "id" | "updated_at">
+): Promise<AboutUs | null> {
+  try {
+    const { data, error } = await adminClient
+      .from("about_us")
+      .insert({ ...aboutUsData, updated_at: new Date().toISOString() })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating about us:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Create about us error:", error)
+    return null
+  }
+}
+
+export async function deleteAboutUsAdmin(aboutUsId: number): Promise<boolean> {
+  try {
+    const { error } = await adminClient
+      .from("about_us")
+      .delete()
+      .eq("id", aboutUsId)
+
+    if (error) {
+      console.error("Error deleting about us:", error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error("Delete about us error:", error)
+    return false
+  }
+}
+
+// Admin CRUD Operations for Faculty
+export async function createFacultyAdmin(
+  facultyData: Omit<Faculty, "id" | "created_by" | "created_at">
+): Promise<Faculty | null> {
+  try {
+    const { data, error } = await adminClient
+      .from("faculty")
+      .insert({ ...facultyData, created_at: new Date().toISOString() })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating faculty:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Create faculty error:", error)
+    return null
+  }
+}
+
+export async function updateFacultyAdmin(
+  facultyId: number,
+  updates: Partial<Omit<Faculty, "id" | "created_by" | "created_at">>
+): Promise<Faculty | null> {
+  try {
+    const { data, error } = await adminClient
+      .from("faculty")
+      .update(updates)
+      .eq("id", facultyId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating faculty:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Update faculty error:", error)
+    return null
+  }
+}
+
+export async function deleteFacultyAdmin(facultyId: number): Promise<boolean> {
+  try {
+    const { error } = await adminClient
+      .from("faculty")
+      .delete()
+      .eq("id", facultyId)
+
+    if (error) {
+      console.error("Error deleting faculty:", error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error("Delete faculty error:", error)
+    return false
+  }
+}
+
+// Admin CRUD Operations for HeroSection
+export async function createHeroSectionAdmin(
+  heroData: Omit<HeroSection, "id" | "updated_at">
+): Promise<HeroSection | null> {
+  try {
+    const { data, error } = await adminClient
+      .from("hero_section")
+      .insert({ ...heroData, updated_at: new Date().toISOString() })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating hero section:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Create hero section error:", error)
+    return null
+  }
+}
+
+export async function updateHeroSectionAdmin(
+  heroId: number,
+  updates: Partial<Omit<HeroSection, "id" | "updated_at">>
+): Promise<HeroSection | null> {
+  try {
+    const { data, error } = await adminClient
+      .from("hero_section")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", heroId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating hero section:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Update hero section error:", error)
+    return null
+  }
+}
+
+export async function deleteHeroSectionAdmin(heroId: number): Promise<boolean> {
+  try {
+    const { error } = await adminClient
+      .from("hero_section")
+      .delete()
+      .eq("id", heroId)
+
+    if (error) {
+      console.error("Error deleting hero section:", error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error("Delete hero section error:", error)
+    return false
+  }
+}
+
+// Admin CRUD Operations for ContactSubmission
+export async function createContactSubmissionAdmin(
+  submissionData: Omit<ContactSubmission, "id" | "created_at" | "updated_at">
+): Promise<ContactSubmission | null> {
+  try {
+    const now = new Date().toISOString()
+    const { data, error } = await adminClient
+      .from("contact_submissions")
+      .insert({
+        ...submissionData,
+        created_at: now,
+        updated_at: now
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating contact submission:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Create contact submission error:", error)
+    return null
+  }
+}
+
+export async function updateContactSubmissionAdmin(
+  submissionId: number,
+  updates: Partial<Omit<ContactSubmission, "id" | "created_at" | "updated_at">>
+): Promise<ContactSubmission | null> {
+  try {
+    const { data, error } = await adminClient
+      .from("contact_submissions")
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", submissionId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating contact submission:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Update contact submission error:", error)
+    return null
+  }
+}
+
+export async function deleteContactSubmissionAdmin(submissionId: number): Promise<boolean> {
+  try {
+    const { error } = await adminClient
+      .from("contact_submissions")
+      .delete()
+      .eq("id", submissionId)
+
+    if (error) {
+      console.error("Error deleting contact submission:", error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error("Delete contact submission error:", error)
+    return false
+  }
+}
+
+export async function getContactSubmissionsAdmin(): Promise<ContactSubmission[]> {
+  try {
+    const { data, error } = await adminClient
+      .from("contact_submissions")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching contact submissions:", error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error("Get contact submissions error:", error)
+    return []
+  }
+}
+

@@ -7,6 +7,8 @@ export interface Course {
   features: string[]
   image_url: string
   is_active: boolean
+  created_at: string
+  updated_at: string
   created_by?: string
 }
 
@@ -20,13 +22,27 @@ export interface AdmissionStep {
   created_by?: string
 }
 
+export interface SocialMedia {
+  platform: string
+  url: string
+  icon: string
+}
+
 export interface ContactInfo {
   id: number
   address: string
+  city: string
+  state: string
+  postal_code: string
+  country: string
   phone: string
   email: string
   office_hours: string
-  map_embed_url: string
+  map_url: string
+  updated_at: string
+  hours: string
+  social_media: SocialMedia[]
+  image_url: string
 }
 
 export interface AboutUs {
@@ -73,6 +89,7 @@ export interface HeroSection {
   cta_link: string
   background_image_url: string
   is_active: boolean
+  updated_at: string
 }
 
 export interface UserProfile {
